@@ -12,13 +12,28 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
+export interface DayAttendance {
+  date: string; // ISO "YYYY-MM-DD"
+  type: 'full' | 'half' | 'absent';
+}
+
+export interface WeekRange {
+  start: string; // ISO "YYYY-MM-DD"
+  end: string;
+  label: string; // e.g. "February 23–28, 2026"
+}
+
 export interface JournalEntry {
   id: string;
   week: number;
   title: string;
-  content: string; // HTML from Tiptap
-  coverImage: string; // Firebase Storage URL
+  content: string;
+  coverImage: string;
+  images?: string[];
   excerpt: string;
+  dateRange?: WeekRange;
+  attendance?: DayAttendance[];
+  totalHours?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

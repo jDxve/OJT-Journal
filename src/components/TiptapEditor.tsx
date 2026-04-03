@@ -3,14 +3,14 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
-import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useRef, useCallback, useState } from 'react';
+import Underline from '@tiptap/extension-underline';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { uploadImage } from '@/lib/storage';
-import { 
-  Bold, Italic, Underline as UnderlineIcon, 
-  Heading1, Heading2, Heading3, 
-  List, ListOrdered, Quote, ImageIcon, Loader2, Link2, Code as CodeIcon
+import {
+  Bold, Italic, Underline as UnderlineIcon,
+  Heading1, Heading2, Heading3,
+  List, ListOrdered, Quote, ImageIcon, Loader2,
 } from 'lucide-react';
 
 interface TiptapEditorProps {
@@ -33,12 +33,12 @@ export default function TiptapEditor({
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
+      Underline,
       Image.configure({
         HTMLAttributes: {
           class: 'rounded-xl border border-[#30363d] max-h-[500px] w-full object-cover my-6 shadow-2xl',
         },
       }),
-      Underline,
       Placeholder.configure({ placeholder }),
     ],
     content,
@@ -52,7 +52,15 @@ export default function TiptapEditor({
     },
   });
 
-  const handleImageUpload = useCallback(async () => {
+  // Sync content when loaded async (e.g. Firestore edit page)
+  useEffect(() => {
+    if (!editor || !content) return;
+    if (editor.getHTML() === content) return;
+    editor.commands.setContent(content, { emitUpdate: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
+
+  const handleImageUpload = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
@@ -60,12 +68,11 @@ export default function TiptapEditor({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || !editor) return;
-      
+
       setUploading(true);
       try {
         const url = await uploadImage(file);
         editor.chain().focus().setImage({ src: url }).run();
-        // Add an empty paragraph after image for easier continuing
         editor.chain().focus().insertContent('<p></p>').run();
       } catch (err) {
         console.error('Image upload failed:', err);
@@ -74,20 +81,28 @@ export default function TiptapEditor({
       }
       if (fileInputRef.current) fileInputRef.current.value = '';
     },
-    [editor]
+    [editor],
   );
 
   if (!editor) return null;
 
-  const ToolbarButton = ({ onClick, isActive, title, children, disabled = false }: any) => (
+  const ToolbarButton = ({
+    onClick, isActive, title, children, disabled = false,
+  }: {
+    onClick: () => void;
+    isActive: boolean;
+    title: string;
+    children: React.ReactNode;
+    disabled?: boolean;
+  }) => (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       title={title}
       className={`p-2 rounded-md flex items-center justify-center transition-all duration-200 ${
-        isActive 
-          ? 'bg-[#1f6feb] text-white shadow-sm' 
+        isActive
+          ? 'bg-[#1f6feb] text-white shadow-sm'
           : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d] border border-transparent hover:border-[#30363d]'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
@@ -98,8 +113,8 @@ export default function TiptapEditor({
   const Separator = () => <div className="w-[1px] h-4 bg-[#30363d] mx-1" />;
 
   return (
-    <div className="border border-[#30363d] rounded-xl bg-[#0d1117] overflow-hidden focus-within:border-[#58a6ff] focus-within:ring-1 focus-within:ring-[#58a6ff]/50 transition-all shadow-xl group">
-      <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-[#161b22] border-b border-[#30363d] sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
+    <div className="border border-[#30363d] rounded-xl bg-[#0d1117] overflow-hidden focus-within:border-[#58a6ff] focus-within:ring-1 focus-within:ring-[#58a6ff]/50 transition-all shadow-xl">
+      <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-[#161b22] border-b border-[#30363d] sticky top-0 z-10 backdrop-blur-md">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive('bold')}
@@ -174,7 +189,7 @@ export default function TiptapEditor({
 
         <ToolbarButton
           onClick={handleImageUpload}
-          isActive={uploading}
+          isActive={false}
           title="Insert Image"
           disabled={uploading}
         >
@@ -188,9 +203,9 @@ export default function TiptapEditor({
 
       <div className="relative">
         <EditorContent editor={editor} />
-        
+
         {uploading && (
-          <div className="absolute inset-0 bg-[#0d1117]/10 backdrop-blur-[1px] flex items-center justify-center z-20 transition-all">
+          <div className="absolute inset-0 bg-[#0d1117]/10 backdrop-blur-[1px] flex items-center justify-center z-20">
             <div className="bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2 flex items-center gap-3 shadow-2xl">
               <Loader2 className="w-4 h-4 animate-spin text-[#58a6ff]" />
               <span className="text-sm font-medium text-[#c9d1d9]">Uploading image...</span>
@@ -200,13 +215,7 @@ export default function TiptapEditor({
       </div>
 
       <div className="px-4 py-2 bg-[#161b22] border-t border-[#30363d] flex items-center justify-between text-[11px] text-[#8b949e]">
-        <div className="flex gap-4">
-          <span>Markdown supported</span>
-          <span>Images autosaved to cloud</span>
-        </div>
-        <div>
-          {editor.storage.characterCount?.characters?.() || 0} characters
-        </div>
+        <span>Rich text · Images autosaved to cloud</span>
       </div>
 
       <input
