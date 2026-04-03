@@ -1,0 +1,221 @@
+'use client';
+
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Underline from '@tiptap/extension-underline';
+import Placeholder from '@tiptap/extension-placeholder';
+import { useRef, useCallback, useState } from 'react';
+import { uploadImage } from '@/lib/storage';
+import { 
+  Bold, Italic, Underline as UnderlineIcon, 
+  Heading1, Heading2, Heading3, 
+  List, ListOrdered, Quote, ImageIcon, Loader2, Link2, Code as CodeIcon
+} from 'lucide-react';
+
+interface TiptapEditorProps {
+  content: string;
+  onChange: (html: string) => void;
+  placeholder?: string;
+}
+
+export default function TiptapEditor({
+  content,
+  onChange,
+  placeholder = 'Start writing your journal entry...',
+}: TiptapEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: 'rounded-xl border border-[#30363d] max-h-[500px] w-full object-cover my-6 shadow-2xl',
+        },
+      }),
+      Underline,
+      Placeholder.configure({ placeholder }),
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-invert max-w-none focus:outline-none min-h-[450px] md:px-8 py-8 text-[#c9d1d9] leading-relaxed selection:bg-[#1f6feb]/40 selection:text-white',
+      },
+    },
+  });
+
+  const handleImageUpload = useCallback(async () => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const onFileSelected = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !editor) return;
+      
+      setUploading(true);
+      try {
+        const url = await uploadImage(file);
+        editor.chain().focus().setImage({ src: url }).run();
+        // Add an empty paragraph after image for easier continuing
+        editor.chain().focus().insertContent('<p></p>').run();
+      } catch (err) {
+        console.error('Image upload failed:', err);
+      } finally {
+        setUploading(false);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    [editor]
+  );
+
+  if (!editor) return null;
+
+  const ToolbarButton = ({ onClick, isActive, title, children, disabled = false }: any) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`p-2 rounded-md flex items-center justify-center transition-all duration-200 ${
+        isActive 
+          ? 'bg-[#1f6feb] text-white shadow-sm' 
+          : 'text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d] border border-transparent hover:border-[#30363d]'
+      } disabled:opacity-50 disabled:cursor-not-allowed`}
+    >
+      {children}
+    </button>
+  );
+
+  const Separator = () => <div className="w-[1px] h-4 bg-[#30363d] mx-1" />;
+
+  return (
+    <div className="border border-[#30363d] rounded-xl bg-[#0d1117] overflow-hidden focus-within:border-[#58a6ff] focus-within:ring-1 focus-within:ring-[#58a6ff]/50 transition-all shadow-xl group">
+      <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-[#161b22] border-b border-[#30363d] sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          isActive={editor.isActive('bold')}
+          title="Bold (Cmd+B)"
+        >
+          <Bold className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          isActive={editor.isActive('italic')}
+          title="Italic (Cmd+I)"
+        >
+          <Italic className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          isActive={editor.isActive('underline')}
+          title="Underline (Cmd+U)"
+        >
+          <UnderlineIcon className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+
+        <Separator />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={editor.isActive('heading', { level: 1 })}
+          title="Heading 1"
+        >
+          <Heading1 className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+          title="Heading 2"
+        >
+          <Heading2 className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          isActive={editor.isActive('heading', { level: 3 })}
+          title="Heading 3"
+        >
+          <Heading3 className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+
+        <Separator />
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={editor.isActive('bulletList')}
+          title="Bullet List"
+        >
+          <List className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={editor.isActive('orderedList')}
+          title="Ordered List"
+        >
+          <ListOrdered className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          isActive={editor.isActive('blockquote')}
+          title="Blockquote"
+        >
+          <Quote className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+
+        <Separator />
+
+        <ToolbarButton
+          onClick={handleImageUpload}
+          isActive={uploading}
+          title="Insert Image"
+          disabled={uploading}
+        >
+          {uploading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-[#58a6ff]" />
+          ) : (
+            <ImageIcon className="w-4 h-4" strokeWidth={2.5} />
+          )}
+        </ToolbarButton>
+      </div>
+
+      <div className="relative">
+        <EditorContent editor={editor} />
+        
+        {uploading && (
+          <div className="absolute inset-0 bg-[#0d1117]/10 backdrop-blur-[1px] flex items-center justify-center z-20 transition-all">
+            <div className="bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2 flex items-center gap-3 shadow-2xl">
+              <Loader2 className="w-4 h-4 animate-spin text-[#58a6ff]" />
+              <span className="text-sm font-medium text-[#c9d1d9]">Uploading image...</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 py-2 bg-[#161b22] border-t border-[#30363d] flex items-center justify-between text-[11px] text-[#8b949e]">
+        <div className="flex gap-4">
+          <span>Markdown supported</span>
+          <span>Images autosaved to cloud</span>
+        </div>
+        <div>
+          {editor.storage.characterCount?.characters?.() || 0} characters
+        </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onFileSelected}
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+}
