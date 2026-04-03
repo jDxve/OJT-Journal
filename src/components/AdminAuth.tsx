@@ -41,7 +41,12 @@ export default function AdminAuth({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleSignOut = () => firebaseSignOut(auth);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+
+  const handleSignOut = () => {
+    firebaseSignOut(auth);
+    setShowSignOutModal(false);
+  };
 
   if (loading) {
     return (
@@ -151,7 +156,7 @@ export default function AdminAuth({ children }: { children: ReactNode }) {
           </Link>
           <div className="h-4 w-px bg-[#30363d]" />
           <button
-            onClick={handleSignOut}
+            onClick={() => setShowSignOutModal(true)}
             title="Sign out"
             className="text-[#8b949e] hover:text-[#ff7b72] transition-colors p-2 rounded-md hover:bg-[#21262d]/50"
           >
@@ -161,6 +166,42 @@ export default function AdminAuth({ children }: { children: ReactNode }) {
       </nav>
 
       {children}
+
+      {/* Sign Out Modal */}
+      {showSignOutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="absolute inset-0 bg-[#010409]/80 backdrop-blur-sm"
+            onClick={() => setShowSignOutModal(false)}
+          />
+          <div className="relative w-full max-w-sm bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-[#da3633]/10 border border-[#da3633]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogOut className="w-6 h-6 text-[#ff7b72]" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Sign Out?</h3>
+              <p className="text-sm text-[#8b949e]">
+                Are you sure you want to log out of the admin dashboard?
+              </p>
+            </div>
+            <div className="flex border-t border-[#30363d]">
+              <button
+                onClick={() => setShowSignOutModal(false)}
+                className="flex-1 px-4 py-4 text-sm font-bold text-[#c9d1d9] hover:bg-[#21262d] transition-colors"
+              >
+                Cancel
+              </button>
+              <div className="w-px bg-[#30363d]" />
+              <button
+                onClick={handleSignOut}
+                className="flex-1 px-4 py-4 text-sm font-bold text-[#ff7b72] hover:bg-[#da3633]/10 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

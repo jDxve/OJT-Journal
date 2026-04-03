@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -12,6 +12,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { getEntries, JournalEntry } from "@/lib/entries";
+import SidePanel from "@/components/SidePanel";
+import EntryDetail from "@/components/EntryDetail";
+import TimelineEntry from "@/components/TimelineEntry";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 function formatDate(timestamp: { seconds: number } | null | undefined) {
   if (!timestamp?.seconds) return "—";
@@ -23,9 +27,53 @@ function formatDate(timestamp: { seconds: number } | null | undefined) {
 }
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#30363d] animate-spin" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+  useEffect(() => {
+    const entryId = searchParams.get('entry');
+    if (entryId && entries.length > 0) {
+      const entry = entries.find(e => e.id === entryId);
+      if (entry) {
+        setSelectedEntry(entry);
+        setIsPanelOpen(true);
+      }
+    }
+  }, [searchParams, entries]);
+
+  const openEntry = (entry: JournalEntry) => {
+    setSelectedEntry(entry);
+    setIsPanelOpen(true);
+    const params = new URLSearchParams(searchParams);
+    params.set('entry', entry.id);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const closeEntry = () => {
+    setIsPanelOpen(false);
+    const params = new URLSearchParams(searchParams);
+    params.delete('entry');
+    router.push(pathname, { scroll: false });
+  };
 
   useEffect(() => {
     getEntries()
@@ -64,14 +112,14 @@ export default function HomePage() {
             href="/admin"
             className="text-sm font-semibold border border-[#30363d] bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-md transition-colors flex items-center gap-2"
           >
-            <LockIcon /> Admin Panel
+            <LockIcon className="w-4 h-4" /> Admin Panel
           </a>
         </div>
       </nav>
 
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 pt-8 flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-20">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 pt-12 flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-20">
         {/* Left Sidebar */}
-        <aside className="w-full md:w-[280px] lg:w-[296px] shrink-0 space-y-6 md:sticky md:top-24 self-start">
+        <aside className="w-full md:w-[280px] lg:w-[296px] shrink-0 space-y-6 md:sticky md:top-24 self-start pb-8">
           <div className="relative">
             <div className="flex flex-row md:flex-col items-center md:items-start gap-5 md:gap-0">
               <div className="w-[100px] h-[100px] md:w-full md:h-auto md:aspect-square shrink-0 rounded-full border border-[#30363d] bg-[#21262d] overflow-hidden mb-0 md:mb-5">
@@ -93,7 +141,7 @@ export default function HomePage() {
                 <div className="flex flex-col gap-1.5 md:gap-3 text-sm text-[#c9d1d9] mt-2 md:mt-2">
                   <div className="flex items-center gap-2">
                     <GraduationCap className="w-4 h-4 text-[#8b949e] shrink-0" />
-                    <span className="font-medium truncate">
+                    <span className="font-medium whitespace-nowrap truncate min-w-0">
                       Bachelor of Science in Information Technology
                     </span>
                   </div>
@@ -150,30 +198,32 @@ export default function HomePage() {
           </div>
         </aside>
 
-        {/* Main Feed */}
-        <main className="flex-1 min-w-0 md:h-[calc(100vh-65px)] md:overflow-y-auto md:scrollbar">
-          <div className="mb-0 mt-2 sticky top-0 z-40 bg-[#0d1117] pb-8 pt-2">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="text-2xl font-semibold text-white tracking-tight">
-                  My Weekly Journal
-                </h2>
-                <p className="text-sm text-[#8b949e] mt-1">
-                  A comprehensive timeline of my On the Job Training.
-                </p>
+        {/* Main Feed Column Wrapper */}
+        <div className="flex-1 min-w-0 relative">
+          <main className="w-full">
+              {/* Title and Search Header Area */}
+              <div className="pt-2 pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white tracking-tight">
+                    My Weekly Journal
+                  </h1>
+                  <p className="text-[#8b949e] text-lg mt-1">
+                    A comprehensive timeline of my On the Job Training.
+                  </p>
+                </div>
+
+                {/* Search Bar on the Right */}
+                <div className="relative w-full max-w-[480px] group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8b949e] group-focus-within:text-[#58a6ff] transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Search entries..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#161b22] border border-[#30363d] rounded-lg h-10 pl-10 pr-4 text-white placeholder-[#484f58] focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] outline-none transition-all shadow-sm"
+                  />
+                </div>
               </div>
-              <div className="relative shrink-0 w-80">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#8b949e] pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search entries..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#21262d] border border-[#30363d] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#c9d1d9] placeholder-[#8b949e] focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] transition-colors"
-                />
-              </div>
-            </div>
-          </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-24">
@@ -187,81 +237,58 @@ export default function HomePage() {
               </h3>
               <p className="text-sm text-[#8b949e]">
                 {searchQuery
-                  ? `Try a different keyword.`
+                  ? "Try a different keyword."
                   : "Check back soon for weekly updates."}
               </p>
             </div>
           ) : (
-            <div className="relative border-l border-[#30363d] ml-3 md:ml-4 space-y-10 pb-8">
+            <div className="relative border-l border-[#30363d] ml-3 md:ml-4 space-y-10 pt-4 pb-8">
               {[...filteredEntries].reverse().map((entry) => (
-                <div key={entry.id} className="relative pl-8 md:pl-10">
-                  {/* Timeline Node */}
-                  <div className="absolute left-[-16px] top-4 w-8 h-8 bg-[#238636] border border-[rgba(240,246,252,0.1)] rounded-full flex flex-col items-center justify-center shadow-sm">
-                    <GitCommit className="w-4 h-4 text-white opacity-80" />
-                  </div>
-
-                  {/* Meta */}
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2 text-sm text-[#8b949e]">
-                    <img
-                      src="/images/profile.png"
-                      className="w-6 h-6 rounded-full border border-[#30363d]"
-                      alt="avatar"
-                    />
-                    <span className="font-semibold text-[#c9d1d9]">jDxve</span>
-                    <span>uploaded a weekly entry for week-{entry.week}</span>
-                    <span className="text-[#8b949e]">
-                      · {formatDate(entry.createdAt as unknown as { seconds: number })}
-                    </span>
-                  </div>
-
-                  {/* Card */}
-                  <div className="border border-[#30363d] bg-[#0d1117] rounded-xl overflow-hidden hover:border-[#8b949e] transition-colors group">
-                    <div className="bg-[#161b22] px-4 py-3 border-b border-[#30363d] flex items-center gap-3">
-                      <span className="inline-flex items-center justify-center shrink-0 bg-[#238636] border border-[rgba(240,246,252,0.1)] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full gap-1 shadow-sm">
-                        # Week {entry.week}
-                      </span>
-                      <h3 className="font-semibold text-white group-hover:text-[#58a6ff] transition-colors line-clamp-1">
-                        {entry.title}
-                      </h3>
-                    </div>
-
-                    <div className="p-4 md:p-6 grid gap-4">
-                      {entry.coverImage && (
-                        <div className="w-full h-48 md:h-64 bg-[#21262d] rounded-lg overflow-hidden border border-[#30363d]">
-                          <img
-                            src={entry.coverImage}
-                            alt={entry.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <p className="text-sm text-[#8b949e] leading-relaxed">{entry.excerpt}</p>
-
-                      <div className="flex flex-wrap items-center justify-between mt-2 pt-4 border-t border-[#30363d] gap-4">
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-[#c9d1d9] bg-[#21262d] px-2 py-1 rounded-md border border-[#30363d]">
-                          <span className="w-2 h-2 rounded-full bg-[#3fb950]" />
-                          {entry.dateRange?.label ?? 'Completed'}
-                        </span>
-                        <a
-                          href={`/entry/${entry.id}`}
-                          className="flex items-center gap-1.5 text-sm font-semibold text-[#58a6ff] hover:underline group-hover:translate-x-1 transition-transform"
-                        >
-                          Read Entry <ArrowRight className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <TimelineEntry
+                  key={entry.id}
+                  entry={entry}
+                  isAdmin={false}
+                  onViewDetail={(e) => openEntry(e)}
+                />
               ))}
             </div>
           )}
-        </main>
+          </main>
+          
+          <SidePanel
+            isOpen={isPanelOpen}
+            onClose={closeEntry}
+            title={selectedEntry?.title}
+            mode="absolute"
+          >
+            {selectedEntry && (
+              <EntryDetail
+                entry={selectedEntry}
+                prevEntry={(() => {
+                  const idx = entries.findIndex((e) => e.id === selectedEntry.id);
+                  return idx > 0 ? { id: entries[idx - 1].id, title: entries[idx - 1].title } : null;
+                })()}
+                nextEntry={(() => {
+                  const idx = entries.findIndex((e) => e.id === selectedEntry.id);
+                  return idx < entries.length - 1
+                    ? { id: entries[idx + 1].id, title: entries[idx + 1].title }
+                    : null;
+                })()}
+                onNavigate={(id) => {
+                  const entry = entries.find((e) => e.id === id);
+                  if (entry) openEntry(entry);
+                }}
+                onClose={closeEntry}
+              />
+            )}
+          </SidePanel>
+        </div>
       </div>
     </div>
   );
 }
 
-function LockIcon() {
+function LockIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -273,6 +300,7 @@ function LockIcon() {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
+      {...props}
     >
       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />

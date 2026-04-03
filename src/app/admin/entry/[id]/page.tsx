@@ -19,7 +19,11 @@ import {
   Calendar,
   Info,
   ExternalLink,
+  Eye,
 } from "lucide-react";
+import SidePanel from "@/components/SidePanel";
+import EntryDetail from "@/components/EntryDetail";
+import { Timestamp } from "firebase/firestore";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), {
   loading: () => (
@@ -45,6 +49,8 @@ export default function EditEntryPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editorKey, setEditorKey] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [dbCreatedAt, setDbCreatedAt] = useState<Timestamp | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -63,6 +69,7 @@ export default function EditEntryPage() {
         setDateRange(entry.dateRange);
         setAttendance(entry.attendance ?? []);
         setTotalHours(entry.totalHours ?? 0);
+        setDbCreatedAt(entry.createdAt);
         setEditorKey((k) => k + 1); // Force re-mount editor with loaded content
       })
       .catch(console.error)
@@ -131,14 +138,14 @@ export default function EditEntryPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link
-                href={`/entry/${id}`}
-                target="_blank"
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-[#8b949e] hover:text-[#c9d1d9] transition-colors"
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-[#8b949e] hover:text-[#c9d1d9] transition-colors cursor-pointer"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5" />
                 Preview
-              </Link>
+              </button>
               <button
                 type="submit"
                 form="edit-entry-form"
@@ -288,6 +295,25 @@ export default function EditEntryPage() {
           </form>
         </div>
       </div>
+      <SidePanel
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title={`Preview: ${title}`}
+      >
+        <EntryDetail
+          entry={{
+            title,
+            week: parseInt(week, 10) || 0,
+            content,
+            coverImage,
+            images,
+            excerpt,
+            dateRange,
+            totalHours,
+            createdAt: dbCreatedAt || Timestamp.now(),
+          }}
+        />
+      </SidePanel>
     </AdminAuth>
   );
 }

@@ -5,12 +5,14 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { uploadImage } from '@/lib/storage';
 import {
   Bold, Italic, Underline as UnderlineIcon,
   Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, ImageIcon, Loader2,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
 } from 'lucide-react';
 
 interface TiptapEditorProps {
@@ -39,6 +41,11 @@ export default function TiptapEditor({
           class: 'rounded-xl border border-[#30363d] max-h-[500px] w-full object-cover my-6 shadow-2xl',
         },
       }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'left',
+      }),
       Placeholder.configure({ placeholder }),
     ],
     content,
@@ -54,11 +61,13 @@ export default function TiptapEditor({
 
   // Sync content when loaded async (e.g. Firestore edit page)
   useEffect(() => {
-    if (!editor || !content) return;
-    if (editor.getHTML() === content) return;
-    editor.commands.setContent(content, { emitUpdate: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content]);
+    if (!editor) return;
+    const currentHTML = editor.getHTML();
+    if (currentHTML === content) return;
+    
+    // Use an empty paragraph if content is truly empty to keep the editor usable
+    editor.commands.setContent(content || '<p></p>', { emitUpdate: false });
+  }, [content, editor]);
 
   const handleImageUpload = useCallback(() => {
     fileInputRef.current?.click();
@@ -183,6 +192,37 @@ export default function TiptapEditor({
           title="Blockquote"
         >
           <Quote className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+
+        <Separator />
+        
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          isActive={editor.isActive({ textAlign: 'left' })}
+          title="Align Left"
+        >
+          <AlignLeft className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          isActive={editor.isActive({ textAlign: 'center' })}
+          title="Align Center"
+        >
+          <AlignCenter className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          isActive={editor.isActive({ textAlign: 'right' })}
+          title="Align Right"
+        >
+          <AlignRight className="w-4 h-4" strokeWidth={2.5} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          isActive={editor.isActive({ textAlign: 'justify' })}
+          title="Align Justify"
+        >
+          <AlignJustify className="w-4 h-4" strokeWidth={2.5} />
         </ToolbarButton>
 
         <Separator />

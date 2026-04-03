@@ -18,7 +18,11 @@ import {
   BookOpen,
   Calendar,
   Info,
+  Layout,
 } from "lucide-react";
+import SidePanel from "@/components/SidePanel";
+import EntryDetail from "@/components/EntryDetail";
+import { Timestamp } from "firebase/firestore";
 
 const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), {
   loading: () => (
@@ -39,6 +43,7 @@ export default function CreateEntryPage() {
   const [attendance, setAttendance] = useState<DayAttendance[]>([]);
   const [totalHours, setTotalHours] = useState<number>(0);
   const [saving, setSaving] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -93,6 +98,14 @@ export default function CreateEntryPage() {
                   Saving changes...
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                className="px-4 py-1.5 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] text-xs font-bold rounded-md transition-all flex items-center gap-2 shadow-sm"
+              >
+                <Layout className="w-3.5 h-3.5" />
+                Preview
+              </button>
               <button
                 type="submit"
                 form="entry-form"
@@ -242,6 +255,25 @@ export default function CreateEntryPage() {
           </form>
         </div>
       </div>
+      <SidePanel
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title="Live Preview"
+      >
+        <EntryDetail
+          entry={{
+            title,
+            week: parseInt(week, 10) || 0,
+            content,
+            coverImage,
+            images,
+            excerpt,
+            dateRange,
+            totalHours,
+            createdAt: Timestamp.now(), // placeholder
+          }}
+        />
+      </SidePanel>
     </AdminAuth>
   );
 }
