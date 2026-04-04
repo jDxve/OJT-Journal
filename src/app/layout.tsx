@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'OJT Journal — Weekly Training Reports',
+  title: 'jDxve OJT Journal',
   description:
     'A curated collection of weekly On-the-Job Training journal entries documenting hands-on learning experiences and professional growth.',
 };

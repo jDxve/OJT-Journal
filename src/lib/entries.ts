@@ -39,12 +39,58 @@ export interface JournalEntry {
 }
 
 const COLLECTION = 'journal-entries';
+const SESSION_KEY = 'ojt_entries_cache';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// In-memory pointer — avoids even the sessionStorage parse on same-session navigation
+let memCache: JournalEntry[] | null = null;
+
+function readSessionCache(): JournalEntry[] | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw) as { data: JournalEntry[]; ts: number };
+    if (Date.now() - ts > CACHE_TTL) return null;
+    // Restore Firestore Timestamps from plain objects
+    return data.map((e) => ({
+      ...e,
+      createdAt: new Timestamp(e.createdAt.seconds, e.createdAt.nanoseconds),
+      updatedAt: new Timestamp(e.updatedAt.seconds, e.updatedAt.nanoseconds),
+    }));
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache(data: JournalEntry[]) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ data, ts: Date.now() }));
+  } catch {
+    // sessionStorage unavailable (SSR or private mode) — silently skip
+  }
+}
+
+function invalidateCache() {
+  memCache = null;
+  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+}
 
 /** Get all entries, ordered by week ascending */
 export async function getEntries(): Promise<JournalEntry[]> {
+  // 1. In-memory hit (same-session navigation — zero cost)
+  if (memCache) return memCache;
+
+  // 2. sessionStorage hit (page refresh — synchronous, instant)
+  const cached = readSessionCache();
+  if (cached) { memCache = cached; return cached; }
+
+  // 3. Firestore fetch (first load or after mutation)
   const q = query(collection(db, COLLECTION), orderBy('week', 'asc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as JournalEntry));
+  const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as JournalEntry));
+  memCache = data;
+  writeSessionCache(data);
+  return data;
 }
 
 /** Get a single entry by ID */
@@ -64,6 +110,7 @@ export async function createEntry(
     createdAt: now,
     updatedAt: now,
   });
+  invalidateCache();
   return ref.id;
 }
 
@@ -76,9 +123,11 @@ export async function updateEntry(
     ...data,
     updatedAt: Timestamp.now(),
   });
+  invalidateCache();
 }
 
 /** Delete an entry */
 export async function deleteEntry(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
+  invalidateCache();
 }
