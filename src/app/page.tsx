@@ -85,7 +85,9 @@ function HomeContent() {
   const filteredEntries = entries.filter(
     (entry) =>
       entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.excerpt.toLowerCase().includes(searchQuery.toLowerCase()),
+      entry.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `week ${entry.week}`.includes(searchQuery.toLowerCase()) ||
+      String(entry.week) === searchQuery.trim(),
   );
 
   return (
@@ -180,7 +182,7 @@ function HomeContent() {
                 <div className="w-full bg-[#21262d] rounded-full h-2.5 overflow-hidden shadow-inner">
                   <div
                     className="bg-gradient-to-r from-[#2ea043] to-[#3fb950] h-full rounded-full transition-all duration-1000 ease-out relative"
-                    style={{ width: `${Math.min((entries.reduce((s, e) => s + (e.totalHours ?? 0), 0) / 320) * 100, 100)}%` }}
+                    style={{ width: `${Math.min((entries.reduce((s, e) => s + (e.totalHours ?? 0), 0) / 486) * 100, 100)}%` }}
                   >
                     <div className="absolute inset-0 bg-white/10 rounded-full" />
                   </div>
@@ -191,7 +193,7 @@ function HomeContent() {
                   <span className="text-[#3fb950] font-semibold">
                     {entries.reduce((s, e) => s + (e.totalHours ?? 0), 0)} hrs credited
                   </span>
-                  <span>320 hrs</span>
+                  <span>486 hrs</span>
                 </div>
               </div>
             </div>

@@ -11,7 +11,7 @@ import { uploadImage } from '@/lib/storage';
 import {
   Bold, Italic, Underline as UnderlineIcon,
   Heading1, Heading2, Heading3,
-  List, ListOrdered, Quote, ImageIcon, Loader2,
+  List, ListOrdered, Quote, ImageIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
 } from 'lucide-react';
 
@@ -28,6 +28,7 @@ export default function TiptapEditor({
 }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -79,14 +80,16 @@ export default function TiptapEditor({
       if (!file || !editor) return;
 
       setUploading(true);
+      setProgress(0);
       try {
-        const url = await uploadImage(file);
+        const url = await uploadImage(file, (pct) => setProgress(pct));
         editor.chain().focus().setImage({ src: url }).run();
         editor.chain().focus().insertContent('<p></p>').run();
       } catch (err) {
         console.error('Image upload failed:', err);
       } finally {
         setUploading(false);
+        setProgress(0);
       }
       if (fileInputRef.current) fileInputRef.current.value = '';
     },
@@ -234,7 +237,22 @@ export default function TiptapEditor({
           disabled={uploading}
         >
           {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-[#58a6ff]" />
+            <div className="relative w-4 h-4">
+              <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#21262d" strokeWidth="12" />
+                <circle
+                  cx="50" cy="50" r="45"
+                  fill="none" stroke="#3fb950" strokeWidth="12"
+                  strokeDasharray="282.7"
+                  strokeDashoffset={282.7 - (282.7 * progress) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-300"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-[6px] font-bold text-white">
+                {Math.round(progress)}
+              </div>
+            </div>
           ) : (
             <ImageIcon className="w-4 h-4" strokeWidth={2.5} />
           )}
@@ -245,11 +263,24 @@ export default function TiptapEditor({
         <EditorContent editor={editor} />
 
         {uploading && (
-          <div className="absolute inset-0 bg-[#0d1117]/10 backdrop-blur-[1px] flex items-center justify-center z-20">
-            <div className="bg-[#161b22] border border-[#30363d] rounded-lg px-4 py-2 flex items-center gap-3 shadow-2xl">
-              <Loader2 className="w-4 h-4 animate-spin text-[#58a6ff]" />
-              <span className="text-sm font-medium text-[#c9d1d9]">Uploading image...</span>
+          <div className="absolute inset-0 bg-[#0d1117]/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+            <div className="relative w-12 h-12 mb-4">
+              <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#21262d" strokeWidth="8" />
+                <circle
+                  cx="50" cy="50" r="45"
+                  fill="none" stroke="#3fb950" strokeWidth="8"
+                  strokeDasharray="282.7"
+                  strokeDashoffset={282.7 - (282.7 * progress) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-300"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
+                {Math.round(progress)}%
+              </div>
             </div>
+            <p className="text-sm font-medium text-white shadow-sm">Uploading photo...</p>
           </div>
         )}
       </div>

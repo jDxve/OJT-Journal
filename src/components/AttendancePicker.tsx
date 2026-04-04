@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import type { DayAttendance, WeekRange } from '@/lib/entries';
 
@@ -57,10 +57,13 @@ const STATUS_STYLES = {
 export default function AttendancePicker({ value, onChange }: AttendancePickerProps) {
   const [monday, setMonday] = useState<Date>(() => getMondayOf(new Date()));
   const [attendance, setAttendance] = useState<Record<string, DayAttendance['type']>>({});
+  // Suppress emit on initial mount and when loading saved data — only emit on user interaction
+  const suppressEmit = useRef(true);
 
-  // Load existing value
+  // Re-run whenever saved dateRange arrives (e.g. async Firestore load on edit page)
   useEffect(() => {
     if (value?.dateRange?.start) {
+      suppressEmit.current = true; // don't emit when setMonday triggers the [monday] effect
       const m = getMondayOf(new Date(value.dateRange.start + 'T00:00:00'));
       setMonday(m);
     }
@@ -69,7 +72,7 @@ export default function AttendancePicker({ value, onChange }: AttendancePickerPr
       value.attendance.forEach((d) => { map[d.date] = d.type; });
       setAttendance(map);
     }
-  }, []);
+  }, [value?.dateRange?.start]);
 
   const weekDays = getWeekDays(monday);
 
@@ -109,8 +112,12 @@ export default function AttendancePicker({ value, onChange }: AttendancePickerPr
     });
   };
 
-  // Emit on week change too
+  // Emit on week navigation — skip on mount and on load
   useEffect(() => {
+    if (suppressEmit.current) {
+      suppressEmit.current = false;
+      return;
+    }
     emit(attendance);
   }, [monday]);
 

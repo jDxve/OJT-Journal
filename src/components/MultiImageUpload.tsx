@@ -19,6 +19,7 @@ export default function MultiImageUpload({
 }: MultiImageUploadProps) {
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,8 +52,14 @@ export default function MultiImageUpload({
       }
 
       setUploading(true);
+      setProgress(0);
       try {
-        const urls = await Promise.all(files.map((f) => uploadImage(f)));
+        // Upload files one by one so progress reflects each file
+        const urls: string[] = [];
+        for (const f of files) {
+          const url = await uploadImage(f, (pct) => setProgress(pct));
+          urls.push(url);
+        }
         const updated = [...images, ...urls];
         setImages(updated);
         onUploaded(updated);
@@ -60,6 +67,7 @@ export default function MultiImageUpload({
         setError('Upload failed. Please try again.');
       } finally {
         setUploading(false);
+        setProgress(0);
       }
     },
     [images, maxImages, maxSizeMB, onUploaded]
@@ -150,14 +158,29 @@ export default function MultiImageUpload({
           }`}
         >
           {uploading ? (
-            <div className="w-6 h-6 border-2 border-[#58a6ff] border-t-transparent rounded-full animate-spin mb-3" />
+            <div className="relative w-12 h-12 mb-4">
+              <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#21262d" strokeWidth="8" />
+                <circle
+                  cx="50" cy="50" r="45"
+                  fill="none" stroke="#3fb950" strokeWidth="8"
+                  strokeDasharray="282.7"
+                  strokeDashoffset={282.7 - (282.7 * progress) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-300"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
+                {Math.round(progress)}%
+              </div>
+            </div>
           ) : (
             <div className="w-14 h-14 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <UploadCloud className="w-6 h-6 text-[#8b949e]" />
             </div>
           )}
           <p className="text-sm font-medium text-[#c9d1d9] mb-1">
-            {uploading ? 'Uploading...' : 'Click or drag images to upload'}
+            {uploading ? 'Uploading photo...' : 'Click or drag images to upload'}
           </p>
           <p className="text-xs text-[#8b949e]">
             PNG, JPG or WEBP · Max {maxSizeMB}MB each · Up to {maxImages} photos
@@ -167,9 +190,24 @@ export default function MultiImageUpload({
 
       {/* Uploading overlay on thumbnail row */}
       {uploading && images.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-[#8b949e]">
-          <div className="w-3.5 h-3.5 border-2 border-[#58a6ff] border-t-transparent rounded-full animate-spin" />
-          Uploading...
+        <div className="flex items-center gap-3 text-xs text-[#8b949e]">
+          <div className="relative w-5 h-5">
+            <svg className="w-full h-full" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#21262d" strokeWidth="12" />
+              <circle
+                cx="50" cy="50" r="45"
+                fill="none" stroke="#3fb950" strokeWidth="12"
+                strokeDasharray="282.7"
+                strokeDashoffset={282.7 - (282.7 * progress) / 100}
+                strokeLinecap="round"
+                className="transition-all duration-300"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center text-[6px] font-bold text-white">
+              {Math.round(progress)}
+            </div>
+          </div>
+          Uploading photo... {Math.round(progress)}%
         </div>
       )}
 

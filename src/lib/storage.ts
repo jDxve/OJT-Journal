@@ -6,10 +6,10 @@ import {
 } from 'firebase/storage';
 import { storage } from './firebase';
 
-/** Compress and resize an image to max 1200px wide, JPEG 85% quality */
+/** Compress and resize an image to max 1024px wide, JPEG 75% quality */
 async function compressImage(file: File): Promise<Blob> {
-  const MAX_WIDTH = 1200;
-  const QUALITY = 0.85;
+  const MAX_WIDTH = 1024;
+  const QUALITY = 0.75;
 
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -29,14 +29,14 @@ async function compressImage(file: File): Promise<Blob> {
         QUALITY,
       );
     };
-    img.onerror = reject;
+    img.onerror = () => reject(new Error('Failed to load image'));
     img.src = url;
   });
 }
 
 /**
  * Upload an image file to Firebase Storage.
- * Compresses to JPEG 1200px / 85% quality before uploading.
+ * Compresses to JPEG 1024px / 75% quality before uploading.
  * Returns the public download URL.
  * Optionally accepts an onProgress callback (0-100).
  */
@@ -44,8 +44,16 @@ export async function uploadImage(
   file: File,
   onProgress?: (pct: number) => void
 ): Promise<string> {
+  // Show immediate feedback so the UI doesn't look frozen
+  onProgress?.(5);
+
   const compressed = await compressImage(file);
-  const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}.jpg`;
+
+  // Compression done — jump to 25% before starting network upload
+  onProgress?.(25);
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9-]/g, '_');
+  const filename = `${Date.now()}-${safeName}.jpg`;
   const storageRef = ref(storage, `journal-images/${filename}`);
   const task = uploadBytesResumable(storageRef, compressed, { contentType: 'image/jpeg' });
 
@@ -53,11 +61,13 @@ export async function uploadImage(
     task.on(
       'state_changed',
       (snap) => {
-        const pct = (snap.bytesTransferred / snap.totalBytes) * 100;
-        onProgress?.(pct);
+        // Scale network upload progress from 25% → 100%
+        const uploadPct = (snap.bytesTransferred / snap.totalBytes) * 75;
+        onProgress?.(25 + uploadPct);
       },
       reject,
       async () => {
+        onProgress?.(100);
         const url = await getDownloadURL(task.snapshot.ref);
         resolve(url);
       }
@@ -68,8 +78,13 @@ export async function uploadImage(
 /** Delete an image from Firebase Storage by its download URL */
 export async function deleteImage(url: string): Promise<void> {
   try {
-    const storageRef = ref(storage, url);
-    await deleteObject(storageRef);
+    // Firebase download URLs are:
+    // https://firebasestorage.googleapis.com/v0/b/BUCKET/o/ENCODED_PATH?token=...
+    const urlObj = new URL(url);
+    const match = urlObj.pathname.match(/\/v0\/b\/[^/]+\/o\/(.+)/);
+    if (!match) throw new Error('Unrecognized storage URL');
+    const storagePath = decodeURIComponent(match[1]);
+    await deleteObject(ref(storage, storagePath));
   } catch {
     console.warn('Failed to delete image from storage:', url);
   }
