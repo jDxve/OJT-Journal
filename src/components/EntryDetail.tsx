@@ -41,7 +41,7 @@ export default function EntryDetail({
   return (
     <article className="bg-[#0d1117] text-[#c9d1d9] font-sans">
       {/* Header */}
-      <div className="bg-[#161b22] px-6 py-5 border-b border-t border-[#30363d] sticky top-0 z-40 relative">
+      <div className="bg-[#161b22] px-6 py-5 border-b border-t border-[#30363d]">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-3">
             <span className="inline-flex items-center justify-center bg-[#238636] border border-[rgba(240,246,252,0.1)] text-white text-xs font-semibold px-2 py-0.5 rounded-full gap-1 shadow-sm">

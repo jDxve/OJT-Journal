@@ -201,7 +201,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="relative border-l border-[#30363d] ml-3 md:ml-4 space-y-10 pb-20 pt-4">
-                    {[...filteredEntries].reverse().map((entry) => (
+                    {filteredEntries.map((entry) => (
                       <TimelineEntry
                         key={entry.id}
                         entry={entry}

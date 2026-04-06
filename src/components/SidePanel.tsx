@@ -29,6 +29,8 @@ export default function SidePanel({ isOpen, onClose, children, title, mode = 'fi
 
   if (!mounted && !isOpen) return null;
 
+  const isFixed = mode === 'fixed';
+
   return (
     <div className={`${mode} inset-0 z-[100] flex justify-end overflow-hidden pointer-events-none`}>
       {/* Backdrop */}
@@ -41,9 +43,9 @@ export default function SidePanel({ isOpen, onClose, children, title, mode = 'fi
 
       {/* Panel */}
       <div
-        className={`relative w-full ${mode === 'absolute' ? 'max-w-none' : 'max-w-3xl'} bg-[#0d1117] shadow-2xl transition-transform duration-300 ease-in-out transform pointer-events-auto ${
+        className={`${isFixed ? 'fixed top-[65px] bottom-0 right-0' : 'relative h-full'} w-full ${mode === 'absolute' ? 'max-w-none' : 'max-w-3xl'} bg-[#0d1117] shadow-2xl transition-transform duration-300 ease-in-out transform pointer-events-auto ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        } h-full flex flex-col overflow-visible`}
+        } flex flex-col overflow-visible`}
       >
         {/* Custom Interrupted Border (Divider Gap) */}
         <div className="absolute left-0 top-0 w-[1px] h-[126px] bg-[#30363d] z-50" />
