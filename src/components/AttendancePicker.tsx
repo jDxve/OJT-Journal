@@ -66,14 +66,19 @@ export default function AttendancePicker({ value, onChange }: AttendancePickerPr
   // Re-run whenever saved dateRange arrives (e.g. async Firestore load on edit page)
   useEffect(() => {
     if (value?.dateRange?.start) {
-      suppressEmit.current = true; // don't emit when setMonday triggers the [monday] effect
+      suppressEmit.current = true;
       const m = getMondayOf(new Date(value.dateRange.start + 'T00:00:00'));
       setMonday(m);
-    }
-    if (value?.attendance?.length) {
-      const map: Record<string, DayAttendance['type']> = {};
-      value.attendance.forEach((d) => { map[d.date] = d.type; });
-      setAttendance(map);
+
+      if (value?.attendance?.length) {
+        const days = getWeekDays(m);
+        const sorted = [...value.attendance].sort((a, b) => a.date.localeCompare(b.date));
+        const map: Record<string, DayAttendance['type']> = {};
+        sorted.forEach((att, i) => {
+          if (i < days.length) map[toISO(days[i])] = att.type;
+        });
+        setAttendance(map);
+      }
     }
   }, [value?.dateRange?.start]);
 
