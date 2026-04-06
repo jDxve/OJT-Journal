@@ -29,13 +29,11 @@ export default function SidePanel({ isOpen, onClose, children, title, mode = 'fi
 
   if (!mounted && !isOpen) return null;
 
-  const isFixed = mode === 'fixed';
-
   return (
-    <div className={`${mode} inset-0 z-[100] flex justify-end overflow-hidden pointer-events-none`}>
+    <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden pointer-events-none">
       {/* Backdrop */}
       <div
-        className={`${mode} inset-0 bg-black/40 transition-opacity duration-300 ease-in-out pointer-events-auto ${
+        className={`fixed inset-0 bg-black/40 transition-opacity duration-300 ease-in-out pointer-events-auto ${
           isOpen ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
@@ -43,7 +41,7 @@ export default function SidePanel({ isOpen, onClose, children, title, mode = 'fi
 
       {/* Panel */}
       <div
-        className={`${isFixed ? 'fixed top-[65px] bottom-0 right-0' : 'relative h-full'} w-full ${mode === 'absolute' ? 'max-w-none' : 'max-w-3xl'} bg-[#0d1117] shadow-2xl transition-transform duration-300 ease-in-out transform pointer-events-auto ${
+        className={`fixed top-[65px] bottom-0 right-0 w-full ${mode === 'absolute' ? 'max-w-none' : 'max-w-3xl'} bg-[#0d1117] shadow-2xl transition-transform duration-300 ease-in-out transform pointer-events-auto ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         } flex flex-col overflow-visible`}
       >

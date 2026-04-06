@@ -134,7 +134,6 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] text-[#8b949e] mt-2 pt-2 border-t border-[#30363d]">
-                    <span>0 hrs</span>
                     <span className="text-[#3fb950] font-bold">
                       {entries.reduce((s, e) => s + (e.totalHours ?? 0), 0)} hrs credited
                     </span>
