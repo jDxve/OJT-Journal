@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -48,6 +48,19 @@ function HomeContent() {
   const pathname = usePathname();
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [panelLeft, setPanelLeft] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const update = () => {
+      if (contentRef.current) {
+        setPanelLeft(contentRef.current.getBoundingClientRect().left);
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   useEffect(() => {
     const entryId = searchParams.get('entry');
@@ -200,10 +213,10 @@ function HomeContent() {
         </aside>
 
         {/* Main Feed Column Wrapper */}
-        <div className="flex-1 min-w-0 relative">
+        <div ref={contentRef} className="flex-1 min-w-0 relative">
           <main className="w-full">
               {/* Title and Search Header Area */}
-              <div className="pt-2 pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div className="sticky top-16 z-40 bg-[#0d1117] pt-2 pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                   <h1 className="text-3xl font-bold text-white tracking-tight">
                     My Weekly Journal
@@ -261,6 +274,7 @@ function HomeContent() {
             onClose={closeEntry}
             title={selectedEntry?.title}
             mode="absolute"
+            leftBound={panelLeft}
           >
             {selectedEntry && (
               <EntryDetail

@@ -9,9 +9,10 @@ interface SidePanelProps {
   children: React.ReactNode;
   title?: string;
   mode?: 'fixed' | 'absolute';
+  leftBound?: number;
 }
 
-export default function SidePanel({ isOpen, onClose, children, title, mode = 'fixed' }: SidePanelProps) {
+export default function SidePanel({ isOpen, onClose, children, title, mode = 'fixed', leftBound }: SidePanelProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -41,9 +42,10 @@ export default function SidePanel({ isOpen, onClose, children, title, mode = 'fi
 
       {/* Panel */}
       <div
-        className={`fixed top-[65px] bottom-0 right-0 w-full ${mode === 'absolute' ? 'max-w-none' : 'max-w-3xl'} bg-[#0d1117] shadow-2xl transition-transform duration-300 ease-in-out transform pointer-events-auto ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        } flex flex-col overflow-visible`}
+        className={`fixed top-[65px] bottom-0 right-0 bg-[#0d1117] shadow-2xl transition-transform duration-300 ease-in-out transform pointer-events-auto ${
+          leftBound !== undefined ? '' : (mode === 'absolute' ? 'w-full max-w-none' : 'w-full max-w-3xl')
+        } ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col overflow-visible`}
+        style={leftBound !== undefined ? { left: leftBound } : undefined}
       >
         {/* Custom Interrupted Border (Divider Gap) */}
         <div className="absolute left-0 top-0 w-[1px] h-[126px] bg-[#30363d] z-50" />
@@ -59,7 +61,7 @@ export default function SidePanel({ isOpen, onClose, children, title, mode = 'fi
         </button>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0d1117]">
+        <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar bg-[#0d1117]">
           {children}
         </div>
       </div>

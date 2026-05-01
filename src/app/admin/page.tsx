@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AdminAuth from '@/components/AdminAuth';
 import { getEntries, deleteEntry, JournalEntry } from '@/lib/entries';
@@ -37,6 +37,19 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [panelLeft, setPanelLeft] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const update = () => {
+      if (contentRef.current) {
+        setPanelLeft(contentRef.current.getBoundingClientRect().left);
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   useEffect(() => {
     getEntries()
@@ -145,7 +158,7 @@ export default function AdminDashboard() {
           </aside>
 
           {/* Main Content Column Wrapper */}
-          <div className="flex-1 min-w-0 relative">
+          <div ref={contentRef} className="flex-1 min-w-0 relative">
             <main className="w-full">
               {/* Header Area */}
               <div className="mb-6">
@@ -223,6 +236,7 @@ export default function AdminDashboard() {
               onClose={() => setIsPanelOpen(false)}
               title={selectedEntry?.title}
               mode="absolute"
+              leftBound={panelLeft}
             >
               {selectedEntry && (
                 <EntryDetail
